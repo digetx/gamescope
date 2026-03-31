@@ -2967,17 +2967,14 @@ int drm_prepare( struct drm_t *drm, bool async, const struct FrameInfo_t *frameI
 				pCRTC->GetProperties().AMD_CRTC_REGAMMA_TF->SetPendingValue( drm->req, 0, bForceInRequest );
 		}
 
-		if ( drm->pConnector && bSleep && !bCurrentlyAsleep )
-		{
-			const char *pszScreenType = drm->pConnector->GetScreenType() == gamescope::GAMESCOPE_SCREEN_TYPE_INTERNAL ? "internal" : "external";
-			drm_log.infof( "Display '%s' (%s) turned off", drm->pConnector->GetName(), pszScreenType );
-		}
+		const bool bAllSleeping = cv_drm_sleep_screens[ gamescope::GAMESCOPE_SCREEN_TYPE_INTERNAL ] &&
+		                          cv_drm_sleep_screens[ gamescope::GAMESCOPE_SCREEN_TYPE_EXTERNAL ];
 
-		if ( drm->pConnector && !bSleep && bCurrentlyAsleep )
-		{
-			const char *pszScreenType = drm->pConnector->GetScreenType() == gamescope::GAMESCOPE_SCREEN_TYPE_INTERNAL ? "internal" : "external";
-			drm_log.infof( "Display '%s' (%s) about to be turned on", drm->pConnector->GetName(), pszScreenType );
-		}
+		if ( bSleep && !bCurrentlyAsleep && bAllSleeping )
+			drm_log.infof( "All displays turned off" );
+
+		if ( !bSleep && bCurrentlyAsleep && !bAllSleeping )
+			drm_log.infof( "All displays about to be turned on" );
 
 		if ( drm->pConnector && !bSleep )
 		{
