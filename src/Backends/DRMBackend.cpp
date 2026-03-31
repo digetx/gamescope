@@ -2973,8 +2973,18 @@ int drm_prepare( struct drm_t *drm, bool async, const struct FrameInfo_t *frameI
 		if ( bSleep && !bCurrentlyAsleep && bAllSleeping )
 			drm_log.infof( "All displays turned off" );
 
-		if ( !bSleep && bCurrentlyAsleep && !bAllSleeping )
-			drm_log.infof( "All displays about to be turned on" );
+		if ( !bSleep && bCurrentlyAsleep )
+		{
+			// Fire only when this is the first display turning on after all were off,
+			// i.e. all other screen types are still sleeping.
+			bool bOtherDisplaysSleeping = true;
+			for ( int i = 0; i < gamescope::GAMESCOPE_SCREEN_TYPE_COUNT; i++ )
+				if ( drm->pConnector && (gamescope::GamescopeScreenType)i != drm->pConnector->GetScreenType() )
+					bOtherDisplaysSleeping &= (bool)cv_drm_sleep_screens[i];
+
+			if ( bOtherDisplaysSleeping )
+				drm_log.infof( "First display about to be turned on" );
+		}
 
 		if ( drm->pConnector && !bSleep )
 		{
