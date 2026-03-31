@@ -2889,11 +2889,12 @@ int drm_prepare( struct drm_t *drm, bool async, const struct FrameInfo_t *frameI
 	// We do internal refcounting with these events
 
 	bool bSleep = false;
+	bool bCurrentlyAsleep = false;
 	if ( drm->pConnector )
 	{
 		bSleep = cv_drm_sleep_screens[ drm->pConnector->GetScreenType() ];
 
-		bool bCurrentlyAsleep = drm->pConnector->GetProperties().CRTC_ID->GetCurrentValue() == 0;
+		bCurrentlyAsleep = drm->pConnector->GetProperties().CRTC_ID->GetCurrentValue() == 0;
 
 		if ( bCurrentlyAsleep != bSleep )
 			needs_modeset = true;
@@ -2965,6 +2966,12 @@ int drm_prepare( struct drm_t *drm, bool async, const struct FrameInfo_t *frameI
 			if ( pCRTC->GetProperties().AMD_CRTC_REGAMMA_TF )
 				pCRTC->GetProperties().AMD_CRTC_REGAMMA_TF->SetPendingValue( drm->req, 0, bForceInRequest );
 		}
+
+		if ( bSleep && !bCurrentlyAsleep )
+			drm_log.infof( "All displays turned off" );
+
+		if ( !bSleep && bCurrentlyAsleep )
+			drm_log.infof( "All displays about to be turned on" );
 
 		if ( drm->pConnector && !bSleep )
 		{
