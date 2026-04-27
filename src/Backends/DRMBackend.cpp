@@ -1406,6 +1406,19 @@ gamescope::ConVar<bool> cv_drm_sleep_screens[] =
 	{ "drm_sleep_external_screen", false, "Force the external screen to be asleep", OnSleepScreenChanged },
 };
 
+static void drm_power_activity( bool bActive )
+{
+	const char *pszValue = bActive ? "active" : "inactive";
+	FILE *pFile = fopen( "/sys/power/activity", "w" );
+	if ( !pFile )
+	{
+		drm_log.errorf( "Failed to open /sys/power/activity: %s", strerror( errno ) );
+		return;
+	}
+	fputs( pszValue, pFile );
+	fclose( pFile );
+}
+
 void drm_sleep_screen( gamescope::GamescopeScreenType eType, bool bSleep )
 {
 	if ( cv_drm_sleep_screens[ eType ] == bSleep )
@@ -2971,7 +2984,10 @@ int drm_prepare( struct drm_t *drm, bool async, const struct FrameInfo_t *frameI
 		                          cv_drm_sleep_screens[ gamescope::GAMESCOPE_SCREEN_TYPE_EXTERNAL ];
 
 		if ( bSleep && !bCurrentlyAsleep && bAllSleeping )
+		{
 			drm_log.infof( "All displays turned off" );
+			drm_power_activity( false );
+		}
 
 		if ( !bSleep && bCurrentlyAsleep )
 		{
@@ -2983,7 +2999,10 @@ int drm_prepare( struct drm_t *drm, bool async, const struct FrameInfo_t *frameI
 					bOtherDisplaysSleeping &= (bool)cv_drm_sleep_screens[i];
 
 			if ( bOtherDisplaysSleeping )
+			{
 				drm_log.infof( "First display about to be turned on" );
+				drm_power_activity( true );
+			}
 		}
 
 		if ( drm->pConnector && !bSleep )
