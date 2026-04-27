@@ -1424,7 +1424,24 @@ void drm_sleep_screen( gamescope::GamescopeScreenType eType, bool bSleep )
 	if ( cv_drm_sleep_screens[ eType ] == bSleep )
 		return;
 
+	const bool bWasAllSleeping = cv_drm_sleep_screens[ gamescope::GAMESCOPE_SCREEN_TYPE_INTERNAL ] &&
+	                             cv_drm_sleep_screens[ gamescope::GAMESCOPE_SCREEN_TYPE_EXTERNAL ];
+
 	cv_drm_sleep_screens[ eType ] = bSleep;
+
+	const bool bAllSleeping = cv_drm_sleep_screens[ gamescope::GAMESCOPE_SCREEN_TYPE_INTERNAL ] &&
+	                          cv_drm_sleep_screens[ gamescope::GAMESCOPE_SCREEN_TYPE_EXTERNAL ];
+
+	if ( !bWasAllSleeping && bAllSleeping )
+	{
+		drm_log.infof( "All displays turned off" );
+		drm_power_activity( false );
+	}
+	else if ( bWasAllSleeping && !bAllSleeping )
+	{
+		drm_log.infof( "First display about to be turned on" );
+		drm_power_activity( true );
+	}
 }
 
 
@@ -2984,10 +3001,7 @@ int drm_prepare( struct drm_t *drm, bool async, const struct FrameInfo_t *frameI
 		                          cv_drm_sleep_screens[ gamescope::GAMESCOPE_SCREEN_TYPE_EXTERNAL ];
 
 		if ( bSleep && !bCurrentlyAsleep && bAllSleeping )
-		{
-			drm_log.infof( "All displays turned off" );
-			drm_power_activity( false );
-		}
+			drm_log.debugf( "All displays turned off (commit)" );
 
 		if ( !bSleep && bCurrentlyAsleep )
 		{
@@ -2999,10 +3013,7 @@ int drm_prepare( struct drm_t *drm, bool async, const struct FrameInfo_t *frameI
 					bOtherDisplaysSleeping &= (bool)cv_drm_sleep_screens[i];
 
 			if ( bOtherDisplaysSleeping )
-			{
-				drm_log.infof( "First display about to be turned on" );
-				drm_power_activity( true );
-			}
+				drm_log.debugf( "First display about to be turned on (commit)" );
 		}
 
 		if ( drm->pConnector && !bSleep )
